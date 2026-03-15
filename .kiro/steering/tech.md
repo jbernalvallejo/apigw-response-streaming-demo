@@ -2,8 +2,8 @@
 
 ## Infrastructure
 - Terraform (v1.0+) with the AWS provider (~> 5.0)
-- AWS region: `eu-south-2`
-- AWS CLI profile: `demo`
+- AWS region: `eu-west-2` (London)
+- AWS CLI profile: `demos`
 
 ## Runtime
 - Node.js 22.x (Lambda runtime `nodejs22.x`)
@@ -12,8 +12,13 @@
 
 ## AWS Services
 - Amazon API Gateway (REST API, defined via inline OpenAPI body)
-- AWS Lambda (two functions: buffer and stream)
+- AWS Lambda (streaming and buffered functions)
 - Amazon Bedrock (Nova Lite model `amazon.nova-lite-v1:0`, ConverseStream API)
+
+## Frontend (lambda-sse only)
+- Vite + React 18
+- `react-markdown` for rendering assistant responses
+- Fetch API with `getReader()` for SSE consumption from POST requests
 
 ## Key Patterns
 - Streaming Lambda uses `awslambda.streamifyResponse` with `HttpResponseStream`
@@ -24,7 +29,7 @@
 
 ## Common Commands
 
-All Terraform commands run from the `terraform/` directory.
+All Terraform commands run from the demo's `terraform/` directory (e.g. `lambda-streaming/terraform/`).
 
 ```bash
 # Initialize providers

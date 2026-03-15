@@ -1,10 +1,17 @@
 # Terraform
-terraform/.terraform/
-terraform/.build/
-terraform/terraform.tfstate
-terraform/terraform.tfstate.backup
-terraform/*.backup
-.terraform.lock.hcl
+**/.terraform/
+**/.build/
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/*.backup
+**/.terraform.lock.hcl
+
+# Node
+**/node_modules/
+**/dist/
+
+# Docs
+STREAMING-DISCONNECT-FINDINGS.md
 
 # OS
 .DS_Store
