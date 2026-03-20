@@ -1,28 +1,21 @@
-# SSE Chatbot Demo
+# AWS Lambda Streaming using SSE
 
-A chatbot that streams responses word-by-word using **Server-Sent Events (SSE)** over Lambda response streaming. The React frontend sends conversation history via POST to API Gateway, which invokes a streaming Lambda that calls Amazon Bedrock Nova Lite (`amazon.nova-lite-v1:0`) via ConverseStream and writes each text chunk back as an SSE event (`data: {"text":"..."}\n\n`).
+A demo showcasing **Server-Sent Events (SSE)** over Lambda response streaming to stream LLM responses chunk by chunk.
+
+A client sends conversation history to API Gateway, which invokes a streaming Lambda that calls Amazon Bedrock's ConverseStream API (Nova Lite model, `amazon.nova-lite-v1:0`) and forwards each text chunk as an SSE event (`data: {"text":"..."}\n\n`).
+
+A React frontend is included to better showcase how SSE streaming works and how the chunks arrive over time.
+
+![Chat initial state](images/chat-initial.png)
 
 ## Architecture
 
 ```
-Browser (React)
+Client
   └── POST /chat  →  API GW (STREAM)  →  Chat Lambda  →  Bedrock ConverseStream
        ← SSE events: data: {"text":"chunk"}\n\n
        ← data: [DONE]\n\n
 ```
-
-The frontend uses the Fetch API with `getReader()` to consume SSE from a POST request (native `EventSource` only supports GET). Conversation history is maintained client-side and sent with each request for multi-turn context.
-
-## Frontend Features
-
-- **Light/dark theme** — toggle in the header, persisted to localStorage
-- **Shimmer skeleton** — animated placeholder while waiting for the first SSE chunk
-- **TTFB badge** — shows time-to-first-byte on each assistant response
-- **Retry on error** — failed requests show the error and a retry button
-- **SSE event log** — collapsible panel showing raw `data: {...}` events with relative timestamps, event count, and total response time
-- **Quick prompts** — pre-built prompts to get started quickly
-- **Markdown rendering** — assistant responses rendered with `react-markdown`
-- **Animations** — page transitions and message entry via `motion`
 
 ## Project Structure
 
@@ -54,14 +47,23 @@ lambda-sse/
 
 ## Prerequisites
 
-- **AWS CLI** installed and configured with a profile named `demos`
+- **AWS CLI** installed and configured with a named profile
 - **Terraform** installed (v1.0+)
 - **Node.js** installed (for frontend development)
-- **Amazon Bedrock** access to the Nova Lite model (`amazon.nova-lite-v1:0`) enabled in the `eu-west-2` region
+- **Amazon Bedrock** — the Nova Lite model (`amazon.nova-lite-v1:0`) must be available in your chosen region
 
 ## Deploy
 
-From the `lambda-sse/terraform/` directory:
+First, open `terraform/main.tf` and set the `profile` and `region` in the AWS provider block to match your setup:
+
+```hcl
+provider "aws" {
+  profile = "your-profile"
+  region  = "your-region"
+}
+```
+
+Then, from the `lambda-sse/terraform/` directory:
 
 ```bash
 terraform init
@@ -71,7 +73,7 @@ terraform apply
 After a successful apply, Terraform outputs the endpoint URL:
 
 ```
-chat_endpoint_url = "https://<api-id>.execute-api.eu-west-2.amazonaws.com/demo/chat"
+chat_endpoint_url = "https://<api-id>.execute-api.<region>.amazonaws.com/demo/chat"
 ```
 
 ## Frontend Development
@@ -88,6 +90,15 @@ npm run dev
 ```
 
 This starts the Vite dev server. Open the URL shown in the terminal to use the chatbot.
+
+The frontend uses the Fetch API with `getReader()` to consume SSE from a POST request (native `EventSource` only supports GET). Conversation history is maintained client-side and sent with each request for multi-turn context.
+
+The demo includes a couple of features to help you see how SSE streaming behaves under the hood:
+
+- **TTFB badge** — shows time-to-first-byte on each assistant response, so you can see the latency before the first chunk arrives
+- **SSE event log** — collapsible panel showing raw `data: {...}` events with relative timestamps, event count, and TTFB/TTFC badges, useful for inspecting the shape and timing of individual chunks
+
+![Chat response with TTFB badge and SSE event log](images/chat-response-with-log.png)
 
 ## Test with curl
 
