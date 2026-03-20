@@ -22,6 +22,8 @@
 - Fetch API with `getReader()` for SSE consumption from POST requests
 - Google Fonts: Fraunces (serif display) + DM Sans (body)
 - CSS custom properties for light/dark theming
+- CSS-only tooltip system (`data-tooltip` / `data-tooltip-pos` attributes)
+- CSS `:has()` selector for expand/collapse state propagation (no JS state lifting)
 
 ## Key Patterns
 - Streaming Lambda uses `awslambda.streamifyResponse` with `HttpResponseStream`

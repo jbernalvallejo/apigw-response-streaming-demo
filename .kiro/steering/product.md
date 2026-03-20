@@ -12,7 +12,8 @@ An interactive chatbot that streams responses word-by-word using Server-Sent Eve
 - Shimmer skeleton placeholder while waiting for the first SSE chunk
 - Time-to-first-byte (TTFB) badge on each assistant response
 - Retry button on failed requests with transparent error display
-- Collapsible raw SSE event log panel with timestamps, event count, and total response time
+- Collapsible raw SSE event log panel with timestamps, event count, TTFB/TTFC badges, expand/collapse animation, and CSS-only tooltips
+- CSS-only custom tooltip system with top/bottom positioning
 - SVG favicon
 
 Both are demo/reference projects, not production services. Their purpose is to illustrate API Gateway streaming patterns with Lambda and Bedrock.

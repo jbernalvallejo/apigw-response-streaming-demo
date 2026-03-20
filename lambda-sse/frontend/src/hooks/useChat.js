@@ -13,9 +13,11 @@ export function useChat() {
   const [ttfb, setTtfb] = useState(null);
   const [ttfc, setTtfc] = useState(null);
   const [sseEvents, setSseEvents] = useState([]);
+  const [ttfbMap, setTtfbMap] = useState({});
   const isStreamingRef = useRef(false);
   const lastFailedTextRef = useRef(null);
   const streamStartRef = useRef(null);
+  const assistantIndexRef = useRef(null);
 
   const doSend = useCallback((text, existingMessages) => {
     if (isStreamingRef.current) return;
@@ -32,6 +34,9 @@ export function useChat() {
 
     setMessages([...existingMessages, userMessage, assistantMessage]);
 
+    const assistantIdx = existingMessages.length + 1;
+    assistantIndexRef.current = assistantIdx;
+
     isStreamingRef.current = true;
     setIsStreaming(true);
     streamStartRef.current = performance.now();
@@ -42,7 +47,9 @@ export function useChat() {
       },
       onFirstChunk: () => {
         const elapsed = performance.now() - streamStartRef.current;
-        setTtfb(Math.round(elapsed));
+        const ms = Math.round(elapsed);
+        setTtfb(ms);
+        setTtfbMap((prev) => ({ ...prev, [assistantIndexRef.current]: ms }));
       },
       onChunk: (chunk) => {
         setMessages((current) => {
@@ -100,8 +107,9 @@ export function useChat() {
     setTtfb(null);
     setTtfc(null);
     setSseEvents([]);
+    setTtfbMap({});
     lastFailedTextRef.current = null;
   }, []);
 
-  return { messages, isStreaming, error, ttfb, ttfc, sseEvents, sendMessage, clearMessages, retry };
+  return { messages, isStreaming, error, ttfb, ttfc, ttfbMap, sseEvents, sendMessage, clearMessages, retry };
 }

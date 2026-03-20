@@ -7,7 +7,10 @@
       ],
       "autoApprove": [
         "browser_type",
-        "browser_run_code"
+        "browser_run_code",
+        "browser_click",
+        "browser_navigate",
+        "browser_take_screenshot"
       ]
     },
     "awslabs.aws-diagram-mcp-server": {

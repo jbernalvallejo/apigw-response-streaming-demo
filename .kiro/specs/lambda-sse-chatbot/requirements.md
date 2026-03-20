@@ -42,6 +42,28 @@ A chatbot demo that showcases Server-Sent Events (SSE) using AWS Lambda as the b
 8. THE Frontend SHALL display a "Clear" button that resets the Conversation_History and clears the chat display. The button SHALL be disabled while streaming.
 9. WHEN the conversation is empty, THE Frontend SHALL display a set of quick-prompt buttons with predefined example messages. Clicking a quick prompt SHALL send that message immediately.
 
+### Requirement 9: SSE Event Log Panel
+
+**User Story:** As a developer, I want to see the raw SSE events as they arrive, so that I can understand the streaming protocol and debug issues.
+
+#### Acceptance Criteria
+
+1. THE Frontend SHALL display an "SSE Log" toggle button in the header that shows/hides a collapsible event log panel.
+2. WHEN the SSE log panel is open, THE Frontend SHALL display each raw SSE event with a relative timestamp from the first event, an event count, and TTFB/TTFC pill badges with CSS-only tooltips.
+3. THE Frontend SHALL provide an expand/collapse button in the log header that toggles the panel between a fixed 200px height and full viewport height (below the app header).
+4. WHEN the log panel is expanded, THE Frontend SHALL hide the message area, input bar, and footer using CSS `:has()` with smooth transitions on height, padding, and opacity.
+5. WHEN the log panel is collapsed back, THE Frontend SHALL restore the message area, input bar, and footer with smooth transitions.
+
+### Requirement 10: Custom Tooltips
+
+**User Story:** As an end user, I want informative tooltips on UI elements, so that I understand what TTFB, TTFC, and other controls mean.
+
+#### Acceptance Criteria
+
+1. THE Frontend SHALL implement a CSS-only tooltip system using `data-tooltip` attributes, displayed above elements by default.
+2. THE Frontend SHALL support a `data-tooltip-pos="bottom"` attribute to position tooltips below elements when top positioning would clip.
+3. Tooltips on buttons SHALL preserve the pointer cursor rather than overriding it with the default cursor.
+
 ### Requirement 3: Consume SSE from POST Requests
 
 **User Story:** As a developer, I want the frontend to consume SSE responses from POST requests using the Fetch API, so that the chatbot works without the GET-only limitation of the native EventSource API.

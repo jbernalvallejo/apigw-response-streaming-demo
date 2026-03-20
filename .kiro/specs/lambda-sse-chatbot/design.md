@@ -180,13 +180,15 @@ export function useChat() { ... }
 Root React component rendering the chat UI.
 
 **Structure:**
-- Header: title + "Clear" button (visible when conversation has messages, disabled while streaming)
+- Header: title + "Clear" button (visible when conversation has messages, disabled while streaming) + "SSE Log" toggle + theme switcher with custom tooltip
 - Quick prompts: shown when conversation is empty — predefined example messages the user can click to send immediately
 - Message list: scrollable container rendering each message with role-based styling (user vs assistant)
 - Assistant messages rendered as Markdown via `react-markdown`
+- TTFB badge on completed assistant messages with CSS-only tooltip
 - Streaming indicator: shown while `isStreaming` is true
 - Input area: text input + send button, disabled while `isStreaming`
-- Error display: shown when `error` is non-null
+- Error display: shown when `error` is non-null, with retry button
+- SSE event log panel: collapsible panel below the input bar showing raw SSE events with relative timestamps, event count, TTFB/TTFC pill badges with tooltips, and expand/collapse toggle that animates siblings via CSS `:has()` and transitions
 
 ### 5. Terraform Infrastructure (`lambda-sse/terraform/`)
 

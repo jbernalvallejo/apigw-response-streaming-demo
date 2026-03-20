@@ -84,10 +84,11 @@ function SseLogPanel({ events, isOpen, ttfb, ttfc }) {
 }
 
 export default function App() {
-  const { messages, isStreaming, error, ttfb, ttfc, sseEvents, sendMessage, clearMessages, retry } = useChat();
+  const { messages, isStreaming, error, ttfb, ttfc, ttfbMap, sseEvents, sendMessage, clearMessages, retry } = useChat();
   const [input, setInput] = useState('');
   const [showSseLog, setShowSseLog] = useState(false);
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
   const { theme, toggle: toggleTheme } = useTheme();
   const prevCountRef = useRef(0);
 
@@ -99,6 +100,13 @@ export default function App() {
   useEffect(() => {
     prevCountRef.current = messages.length;
   }, [messages.length]);
+
+  // Refocus input when streaming finishes so the cursor stays in the text field
+  useEffect(() => {
+    if (!isStreaming) {
+      inputRef.current?.focus();
+    }
+  }, [isStreaming]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -150,7 +158,8 @@ export default function App() {
             onClick={toggleTheme}
             className="btn-ghost theme-btn"
             aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
-            title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+            data-tooltip={theme === 'dark' ? 'Light theme' : 'Dark theme'}
+            data-tooltip-pos="bottom"
           >
             {theme === 'dark' ? '☀' : '☽'}
           </button>
@@ -199,7 +208,7 @@ export default function App() {
                   return null;
                 }
 
-                const isLastAssistant = msg.role === 'assistant' && i === messages.length - 1 && !isStreaming;
+                const msgTtfb = msg.role === 'assistant' ? ttfbMap[i] : null;
 
                 return (
                   <motion.div
@@ -221,8 +230,8 @@ export default function App() {
                     ) : (
                       <p className="message-content">{msg.content || '\u00A0'}</p>
                     )}
-                    {isLastAssistant && ttfb != null && (
-                      <span className="ttfb-badge" data-tooltip="Time to first byte">TTFB {ttfb} ms</span>
+                    {msgTtfb != null && (
+                      <span className="ttfb-badge" data-tooltip="Time to first byte">TTFB {msgTtfb} ms</span>
                     )}
                   </motion.div>
                 );
@@ -265,6 +274,7 @@ export default function App() {
 
       <form onSubmit={handleSubmit} className="input-bar">
         <input
+          ref={inputRef}
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
