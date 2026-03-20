@@ -11,6 +11,8 @@ export function useChat() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState(null);
   const [ttfb, setTtfb] = useState(null);
+  const [ttfc, setTtfc] = useState(null);
+  const [sseEvents, setSseEvents] = useState([]);
   const isStreamingRef = useRef(false);
   const lastFailedTextRef = useRef(null);
   const streamStartRef = useRef(null);
@@ -20,6 +22,8 @@ export function useChat() {
 
     setError(null);
     setTtfb(null);
+    setTtfc(null);
+    setSseEvents([]);
     lastFailedTextRef.current = text;
 
     const userMessage = { role: 'user', content: text };
@@ -33,6 +37,9 @@ export function useChat() {
     streamStartRef.current = performance.now();
 
     streamChat(API_URL, messagesForApi, {
+      onRawEvent: (raw) => {
+        setSseEvents((prev) => [...prev, { time: Date.now(), data: raw }]);
+      },
       onFirstChunk: () => {
         const elapsed = performance.now() - streamStartRef.current;
         setTtfb(Math.round(elapsed));
@@ -46,6 +53,8 @@ export function useChat() {
         });
       },
       onDone: () => {
+        const elapsed = performance.now() - streamStartRef.current;
+        setTtfc(Math.round(elapsed));
         lastFailedTextRef.current = null;
         isStreamingRef.current = false;
         setIsStreaming(false);
@@ -89,8 +98,10 @@ export function useChat() {
     setMessages([]);
     setError(null);
     setTtfb(null);
+    setTtfc(null);
+    setSseEvents([]);
     lastFailedTextRef.current = null;
   }, []);
 
-  return { messages, isStreaming, error, ttfb, sendMessage, clearMessages, retry };
+  return { messages, isStreaming, error, ttfb, ttfc, sseEvents, sendMessage, clearMessages, retry };
 }

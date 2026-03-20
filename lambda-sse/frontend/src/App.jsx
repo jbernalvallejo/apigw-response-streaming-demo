@@ -32,9 +32,61 @@ function ShimmerSkeleton() {
   );
 }
 
+function SseLogPanel({ events, isOpen, ttfb, ttfc }) {
+  const logEndRef = useRef(null);
+  const [expanded, setExpanded] = useState(false);
+  const startTime = events.length > 0 ? events[0].time : null;
+
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [events]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className={`sse-log-panel${expanded ? ' sse-log-panel--expanded' : ''}`}>
+      <div className="sse-log-header">
+        <span className="sse-log-count">{events.length} event{events.length !== 1 ? 's' : ''}</span>
+        <div className="sse-log-stats">
+          {ttfb != null && events.length > 0 && (
+            <span className="sse-log-badge sse-log-badge--ttfb" data-tooltip="Time to first byte">TTFB {ttfb} ms</span>
+          )}
+          {ttfc != null && (
+            <span className="sse-log-badge sse-log-badge--ttfc" data-tooltip="Time to full completion">TTFC {(ttfc / 1000).toFixed(2)} s</span>
+          )}
+          <button
+            className="sse-log-expand"
+            onClick={() => setExpanded((v) => !v)}
+            aria-label={expanded ? 'Collapse SSE log' : 'Expand SSE log'}
+            data-tooltip={expanded ? 'Collapse' : 'Expand'}
+          >
+            {expanded ? '↓' : '↑'}
+          </button>
+        </div>
+      </div>
+      <div className="sse-log-body">
+        {events.length === 0 ? (
+          <div className="sse-log-empty">Send a message to see raw SSE events</div>
+        ) : (
+          events.map((evt, i) => (
+            <div key={i} className={`sse-log-entry${i % 2 === 0 ? '' : ' sse-log-entry--alt'}`}>
+              <span className="sse-log-ts">
+                +{startTime ? ((evt.time - startTime) / 1000).toFixed(3) : '0.000'}s
+              </span>
+              <span className="sse-log-data">{evt.data}</span>
+            </div>
+          ))
+        )}
+        <div ref={logEndRef} />
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
-  const { messages, isStreaming, error, ttfb, sendMessage, clearMessages, retry } = useChat();
+  const { messages, isStreaming, error, ttfb, ttfc, sseEvents, sendMessage, clearMessages, retry } = useChat();
   const [input, setInput] = useState('');
+  const [showSseLog, setShowSseLog] = useState(false);
   const messagesEndRef = useRef(null);
   const { theme, toggle: toggleTheme } = useTheme();
   const prevCountRef = useRef(0);
@@ -86,6 +138,14 @@ export default function App() {
               Clear
             </motion.button>
           )}
+          <button
+            onClick={() => setShowSseLog((v) => !v)}
+            className={`btn-ghost sse-log-toggle${showSseLog ? ' sse-log-toggle--active' : ''}`}
+            aria-label="Toggle SSE event log"
+            title="Toggle raw SSE event log"
+          >
+            SSE Log
+          </button>
           <button
             onClick={toggleTheme}
             className="btn-ghost theme-btn"
@@ -162,7 +222,7 @@ export default function App() {
                       <p className="message-content">{msg.content || '\u00A0'}</p>
                     )}
                     {isLastAssistant && ttfb != null && (
-                      <span className="ttfb-badge">TTFB {ttfb}ms</span>
+                      <span className="ttfb-badge" data-tooltip="Time to first byte">TTFB {ttfb} ms</span>
                     )}
                   </motion.div>
                 );
@@ -221,6 +281,8 @@ export default function App() {
           Send
         </button>
       </form>
+
+      <SseLogPanel events={sseEvents} isOpen={showSseLog} ttfb={ttfb} ttfc={ttfc} />
 
       <div className="footer" aria-hidden="true">
         <span>SSE</span>

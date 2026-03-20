@@ -8,7 +8,7 @@
  * @param {function} callbacks.onError - Called on fetch failure or non-200 status
  * @returns {Promise<void>}
  */
-export async function streamChat(url, messages, { onChunk, onDone, onError, onFirstChunk }) {
+export async function streamChat(url, messages, { onChunk, onDone, onError, onFirstChunk, onRawEvent }) {
   let response;
   try {
     response = await fetch(url, {
@@ -61,12 +61,15 @@ export async function streamChat(url, messages, { onChunk, onDone, onError, onFi
         const payload = trimmed.slice(6); // strip "data: " prefix
 
         if (payload === '[DONE]') {
+          onRawEvent?.(`data: [DONE]`);
           onDone();
           return;
         }
 
         try {
           const parsed = JSON.parse(payload);
+
+          onRawEvent?.(`data: ${payload}`);
 
           if (parsed.error) {
             onError(parsed.error);

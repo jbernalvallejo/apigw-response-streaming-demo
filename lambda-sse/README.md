@@ -19,6 +19,7 @@ The frontend uses the Fetch API with `getReader()` to consume SSE from a POST re
 - **Shimmer skeleton** — animated placeholder while waiting for the first SSE chunk
 - **TTFB badge** — shows time-to-first-byte on each assistant response
 - **Retry on error** — failed requests show the error and a retry button
+- **SSE event log** — collapsible panel showing raw `data: {...}` events with relative timestamps, event count, and total response time
 - **Quick prompts** — pre-built prompts to get started quickly
 - **Markdown rendering** — assistant responses rendered with `react-markdown`
 - **Animations** — page transitions and message entry via `motion`
