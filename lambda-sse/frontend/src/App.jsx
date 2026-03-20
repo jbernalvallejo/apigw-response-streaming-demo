@@ -1,15 +1,52 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
 import { useChat } from './hooks/useChat.js';
+import './App.css';
+
+function useTheme() {
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === 'undefined') return 'light';
+    return localStorage.getItem('theme') || 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggle = useCallback(() => {
+    setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
+  }, []);
+
+  return { theme, toggle };
+}
+
+function ShimmerSkeleton() {
+  return (
+    <div className="shimmer-skeleton" aria-label="Loading response">
+      <div className="shimmer-line" />
+      <div className="shimmer-line" />
+      <div className="shimmer-line" />
+    </div>
+  );
+}
 
 export default function App() {
-  const { messages, isStreaming, error, sendMessage, clearMessages } = useChat();
+  const { messages, isStreaming, error, ttfb, sendMessage, clearMessages, retry } = useChat();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
+  const { theme, toggle: toggleTheme } = useTheme();
+  const prevCountRef = useRef(0);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const isFirstBatch = prevCountRef.current === 0 && messages.length > 0;
+  useEffect(() => {
+    prevCountRef.current = messages.length;
+  }, [messages.length]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -19,6 +56,10 @@ export default function App() {
     setInput('');
   };
 
+  // Detect if the last assistant message is still empty (waiting for first chunk)
+  const lastMsg = messages[messages.length - 1];
+  const isWaitingForFirstChunk = isStreaming && lastMsg?.role === 'assistant' && !lastMsg.content;
+
   const quickPrompts = [
     'Explain Lambda response streaming in 3 sentences',
     'What is Server-Sent Events (SSE)?',
@@ -26,215 +67,168 @@ export default function App() {
   ];
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h1 style={styles.title}>Lambda SSE Chatbot</h1>
-        {messages.length > 0 && (
+    <div className="shell">
+      <header className="header">
+        <div className="header-brand">
+          <span className="header-mark">λ</span>
+          <h1 className="title">Lambda SSE</h1>
+        </div>
+        <div className="header-actions">
+          {messages.length > 0 && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              onClick={clearMessages}
+              disabled={isStreaming}
+              className="btn-ghost"
+              aria-label="Clear conversation"
+            >
+              Clear
+            </motion.button>
+          )}
           <button
-            onClick={clearMessages}
-            disabled={isStreaming}
-            style={styles.clearButton}
-            aria-label="Clear conversation"
+            onClick={toggleTheme}
+            className="btn-ghost theme-btn"
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+            title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
           >
-            Clear
+            {theme === 'dark' ? '☀' : '☽'}
           </button>
-        )}
-      </div>
+        </div>
+      </header>
 
-      <div style={styles.messageList}>
-        {messages.length === 0 && (
-          <div style={styles.emptyState}>
-            <p style={styles.empty}>Send a message to start chatting.</p>
-            <div style={styles.quickPrompts}>
-              {quickPrompts.map((prompt) => (
-                <button
-                  key={prompt}
-                  onClick={() => sendMessage(prompt)}
-                  disabled={isStreaming}
-                  style={styles.quickPromptButton}
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            style={{
-              ...styles.messageBubble,
-              ...(msg.role === 'user' ? styles.userBubble : styles.assistantBubble),
-            }}
-          >
-            <span style={styles.role}>{msg.role === 'user' ? 'You' : 'Assistant'}</span>
-            {msg.role === 'assistant' ? (
-              <div style={styles.markdown}>
-                <Markdown>{msg.content || '\u00A0'}</Markdown>
+      <div className="message-area" role="log" aria-live="polite">
+        <AnimatePresence mode="popLayout">
+          {messages.length === 0 ? (
+            <motion.div
+              key="empty"
+              className="empty-state"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, transition: { duration: 0.15 } }}
+            >
+              <div className="empty-glyph" aria-hidden="true">λ</div>
+              <p className="empty-text">What would you like to know?</p>
+              <div className="quick-prompts">
+                {quickPrompts.map((prompt, i) => (
+                  <motion.button
+                    key={prompt}
+                    className="quick-prompt-btn"
+                    onClick={() => sendMessage(prompt)}
+                    disabled={isStreaming}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 + i * 0.08, duration: 0.3 }}
+                  >
+                    {prompt}
+                  </motion.button>
+                ))}
               </div>
-            ) : (
-              <p style={styles.content}>{msg.content || '\u00A0'}</p>
-            )}
-          </div>
-        ))}
-        {isStreaming && (
-          <p style={styles.streaming}>Thinking…</p>
-        )}
-        <div ref={messagesEndRef} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="conversation"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2, delay: 0.1 }}
+              style={{ display: 'contents' }}
+            >
+              {messages.map((msg, i) => {
+                // Skip rendering the empty assistant placeholder — show shimmer instead
+                if (msg.role === 'assistant' && !msg.content && isWaitingForFirstChunk && i === messages.length - 1) {
+                  return null;
+                }
+
+                const isLastAssistant = msg.role === 'assistant' && i === messages.length - 1 && !isStreaming;
+
+                return (
+                  <motion.div
+                    key={i}
+                    className={`message ${
+                      msg.role === 'user' ? 'message--user' : 'message--assistant'
+                    }`}
+                    initial={isFirstBatch ? { opacity: 0 } : { opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <span className="message-role">
+                      {msg.role === 'user' ? 'You' : 'Assistant'}
+                    </span>
+                    {msg.role === 'assistant' ? (
+                      <div className="message-markdown">
+                        <Markdown>{msg.content || '\u00A0'}</Markdown>
+                      </div>
+                    ) : (
+                      <p className="message-content">{msg.content || '\u00A0'}</p>
+                    )}
+                    {isLastAssistant && ttfb != null && (
+                      <span className="ttfb-badge">TTFB {ttfb}ms</span>
+                    )}
+                  </motion.div>
+                );
+              })}
+
+              {isWaitingForFirstChunk && (
+                <motion.div
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ShimmerSkeleton />
+                </motion.div>
+              )}
+
+              {isStreaming && !isWaitingForFirstChunk && (
+                <div className="streaming-indicator">
+                  <div className="streaming-dots">
+                    <span className="streaming-dot" />
+                    <span className="streaming-dot" />
+                    <span className="streaming-dot" />
+                  </div>
+                  Streaming…
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {error && <p style={styles.error}>{error}</p>}
+      {error && (
+        <div className="error-bar" role="alert">
+          <span>Error: {error}</span>
+          <button onClick={retry} className="retry-btn" disabled={isStreaming}>
+            Retry
+          </button>
+        </div>
+      )}
 
-      <form onSubmit={handleSubmit} style={styles.form}>
+      <form onSubmit={handleSubmit} className="input-bar">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message…"
+          placeholder="Ask anything…"
           disabled={isStreaming}
-          style={styles.input}
+          className="input-field"
+          aria-label="Chat message input"
         />
-        <button type="submit" disabled={isStreaming || !input.trim()} style={styles.button}>
+        <button
+          type="submit"
+          disabled={isStreaming || !input.trim()}
+          className="send-btn"
+        >
           Send
         </button>
       </form>
+
+      <div className="footer" aria-hidden="true">
+        <span>SSE</span>
+        <span className="footer-sep">·</span>
+        <span>Bedrock</span>
+        <span className="footer-sep">·</span>
+        <span>Nova Lite</span>
+      </div>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    maxWidth: 900,
-    margin: '0 auto',
-    padding: 24,
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100vh',
-    boxSizing: 'border-box',
-  },
-  title: {
-    fontSize: 20,
-    margin: 0,
-    textAlign: 'center',
-    flex: 1,
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  clearButton: {
-    padding: '6px 12px',
-    fontSize: 13,
-    border: '1px solid #ccc',
-    borderRadius: 6,
-    backgroundColor: '#fff',
-    color: '#555',
-    cursor: 'pointer',
-  },
-  messageList: {
-    flex: 1,
-    overflowY: 'auto',
-    border: '1px solid #ddd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 8,
-  },
-  empty: {
-    color: '#888',
-    textAlign: 'center',
-    marginTop: 32,
-  },
-  emptyState: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 16,
-  },
-  quickPrompts: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 8,
-    width: '100%',
-    maxWidth: 400,
-  },
-  quickPromptButton: {
-    padding: '10px 14px',
-    fontSize: 13,
-    border: '1px solid #ddd',
-    borderRadius: 8,
-    backgroundColor: '#fafafa',
-    color: '#333',
-    cursor: 'pointer',
-    textAlign: 'left',
-  },
-  messageBubble: {
-    padding: '8px 12px',
-    borderRadius: 8,
-    maxWidth: '85%',
-    wordWrap: 'break-word',
-    overflowWrap: 'break-word',
-    minWidth: 0,
-  },
-  userBubble: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#0071f3',
-    color: '#fff',
-  },
-  assistantBubble: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#f0f0f0',
-    color: '#222',
-  },
-  role: {
-    fontSize: 11,
-    fontWeight: 600,
-    opacity: 0.7,
-    display: 'block',
-    marginBottom: 2,
-  },
-  content: {
-    margin: 0,
-    whiteSpace: 'pre-wrap',
-  },
-  markdown: {
-    margin: 0,
-    lineHeight: 1.5,
-    overflow: 'auto',
-  },
-  streaming: {
-    color: '#888',
-    fontStyle: 'italic',
-    margin: '4px 0',
-  },
-  error: {
-    color: '#d32f2f',
-    fontSize: 14,
-    margin: '0 0 8px',
-  },
-  form: {
-    display: 'flex',
-    gap: 8,
-  },
-  input: {
-    flex: 1,
-    padding: '10px 12px',
-    fontSize: 14,
-    border: '1px solid #ccc',
-    borderRadius: 6,
-    outline: 'none',
-  },
-  button: {
-    padding: '10px 20px',
-    fontSize: 14,
-    border: 'none',
-    borderRadius: 6,
-    backgroundColor: '#0071f3',
-    color: '#fff',
-    cursor: 'pointer',
-  },
-};

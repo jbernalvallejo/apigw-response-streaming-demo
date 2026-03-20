@@ -8,7 +8,7 @@
  * @param {function} callbacks.onError - Called on fetch failure or non-200 status
  * @returns {Promise<void>}
  */
-export async function streamChat(url, messages, { onChunk, onDone, onError }) {
+export async function streamChat(url, messages, { onChunk, onDone, onError, onFirstChunk }) {
   let response;
   try {
     response = await fetch(url, {
@@ -38,6 +38,7 @@ export async function streamChat(url, messages, { onChunk, onDone, onError }) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
+  let firstChunkFired = false;
 
   try {
     while (true) {
@@ -73,6 +74,10 @@ export async function streamChat(url, messages, { onChunk, onDone, onError }) {
           }
 
           if (typeof parsed.text === 'string') {
+            if (!firstChunkFired) {
+              firstChunkFired = true;
+              onFirstChunk?.();
+            }
             onChunk(parsed.text);
           }
         } catch {

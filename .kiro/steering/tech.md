@@ -18,7 +18,10 @@
 ## Frontend (lambda-sse only)
 - Vite + React 18
 - `react-markdown` for rendering assistant responses
+- `motion` (Framer Motion) for animations
 - Fetch API with `getReader()` for SSE consumption from POST requests
+- Google Fonts: Fraunces (serif display) + DM Sans (body)
+- CSS custom properties for light/dark theming
 
 ## Key Patterns
 - Streaming Lambda uses `awslambda.streamifyResponse` with `HttpResponseStream`

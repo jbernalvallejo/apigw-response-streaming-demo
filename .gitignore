@@ -13,5 +13,9 @@
 # Docs
 STREAMING-DISCONNECT-FINDINGS.md
 
+# Environment
+**/.env.local
+**/.env*.local
+
 # OS
 .DS_Store

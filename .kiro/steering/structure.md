@@ -21,9 +21,12 @@
 │   │   └── chat/
 │   │       └── index.mjs
 │   ├── frontend/              # React frontend (Vite)
+│   │   ├── public/
+│   │   │   └── favicon.svg
 │   │   ├── src/
 │   │   │   ├── hooks/useChat.js
 │   │   │   ├── lib/sseClient.js
+│   │   │   ├── App.css
 │   │   │   ├── App.jsx
 │   │   │   └── main.jsx
 │   │   ├── index.html

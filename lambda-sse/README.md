@@ -11,19 +11,32 @@ Browser (React)
        ← data: [DONE]\n\n
 ```
 
-The frontend uses the Fetch API with `getReader()` to consume SSE from a POST request (native `EventSource` only supports GET). Conversation history is maintained client-side and sent with each request for multi-turn context. The UI includes quick-prompt buttons for getting started and a clear button to reset the conversation.
+The frontend uses the Fetch API with `getReader()` to consume SSE from a POST request (native `EventSource` only supports GET). Conversation history is maintained client-side and sent with each request for multi-turn context.
+
+## Frontend Features
+
+- **Light/dark theme** — toggle in the header, persisted to localStorage
+- **Shimmer skeleton** — animated placeholder while waiting for the first SSE chunk
+- **TTFB badge** — shows time-to-first-byte on each assistant response
+- **Retry on error** — failed requests show the error and a retry button
+- **Quick prompts** — pre-built prompts to get started quickly
+- **Markdown rendering** — assistant responses rendered with `react-markdown`
+- **Animations** — page transitions and message entry via `motion`
 
 ## Project Structure
 
 ```
 lambda-sse/
 ├── frontend/          # React frontend (Vite)
+│   ├── public/
+│   │   └── favicon.svg
 │   ├── src/
 │   │   ├── hooks/
-│   │   │   └── useChat.js
+│   │   │   └── useChat.js   # Chat state, TTFB tracking, retry logic
 │   │   ├── lib/
-│   │   │   └── sseClient.js
-│   │   ├── App.jsx
+│   │   │   └── sseClient.js # SSE stream consumer with onFirstChunk callback
+│   │   ├── App.css           # Theming (light/dark), layout, components
+│   │   ├── App.jsx           # Main UI component
 │   │   └── main.jsx
 │   ├── index.html
 │   ├── package.json
@@ -60,6 +73,21 @@ After a successful apply, Terraform outputs the endpoint URL:
 chat_endpoint_url = "https://<api-id>.execute-api.eu-west-2.amazonaws.com/demo/chat"
 ```
 
+## Frontend Development
+
+From the `lambda-sse/frontend/` directory:
+
+```bash
+npm install
+
+# Create .env.local with the API URL from Terraform
+echo "VITE_API_URL=$(terraform -chdir=../terraform output -raw chat_endpoint_url)" > .env.local
+
+npm run dev
+```
+
+This starts the Vite dev server. Open the URL shown in the terminal to use the chatbot.
+
 ## Test with curl
 
 ```bash
@@ -78,17 +106,6 @@ data: {"text":" there!"}
 
 data: [DONE]
 ```
-
-## Frontend Development
-
-From the `lambda-sse/frontend/` directory:
-
-```bash
-npm install
-VITE_API_URL="$(terraform -chdir=lambda-sse/terraform output -raw chat_endpoint_url)" npm run dev
-```
-
-This starts the Vite dev server. Open the URL shown in the terminal to use the chatbot.
 
 ## Teardown
 
