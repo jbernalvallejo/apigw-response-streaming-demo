@@ -121,6 +121,33 @@ html, body, #root {
   gap: 6px;
 }
 
+.model-selector {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.model-selector:hover {
+  border-color: var(--border-strong);
+}
+
+.model-selector:focus {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.model-selector:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 
 /* ---- BUTTONS (shared) ---- */
 .btn-ghost {

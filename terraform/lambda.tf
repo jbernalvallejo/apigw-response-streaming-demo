@@ -1,5 +1,7 @@
 # --- IAM Role for Chat Lambda ---
 
+data "aws_caller_identity" "current" {}
+
 resource "aws_iam_role" "lambda_role" {
   name = "sse-chatbot-demo-lambda-role"
 
@@ -25,9 +27,30 @@ resource "aws_iam_role_policy" "bedrock_invoke" {
     Version = "2012-10-17"
     Statement = [
       {
+        Sid      = "InvokeNovaInRegion"
         Action   = "bedrock:InvokeModelWithResponseStream"
         Effect   = "Allow"
         Resource = "arn:aws:bedrock:eu-west-2::foundation-model/amazon.nova-lite-v1:0"
+      },
+      {
+        Sid    = "InvokeClaudeGlobalCris"
+        Action = "bedrock:InvokeModelWithResponseStream"
+        Effect = "Allow"
+        Resource = [
+          "arn:aws:bedrock:eu-west-2:${data.aws_caller_identity.current.account_id}:inference-profile/global.anthropic.claude-haiku-4-5-20251001-v1:0",
+          "arn:aws:bedrock:eu-west-2:${data.aws_caller_identity.current.account_id}:inference-profile/global.anthropic.claude-opus-4-7",
+          "arn:aws:bedrock:eu-west-2:${data.aws_caller_identity.current.account_id}:inference-profile/global.anthropic.claude-sonnet-4-6",
+        ]
+      },
+      {
+        Sid    = "InvokeClaudeFoundationModels"
+        Action = "bedrock:InvokeModelWithResponseStream"
+        Effect = "Allow"
+        Resource = [
+          "arn:aws:bedrock:*::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
+          "arn:aws:bedrock:*::foundation-model/anthropic.claude-opus-4-7",
+          "arn:aws:bedrock:*::foundation-model/anthropic.claude-sonnet-4-6",
+        ]
       }
     ]
   })

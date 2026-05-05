@@ -14,6 +14,7 @@ export function useChat() {
   const [ttfc, setTtfc] = useState(null);
   const [sseEvents, setSseEvents] = useState([]);
   const [ttfbMap, setTtfbMap] = useState({});
+  const [modelId, setModelId] = useState('amazon.nova-lite-v1:0');
   const isStreamingRef = useRef(false);
   const lastFailedTextRef = useRef(null);
   const streamStartRef = useRef(null);
@@ -42,6 +43,7 @@ export function useChat() {
     streamStartRef.current = performance.now();
 
     streamChat(API_URL, messagesForApi, {
+      modelId,
       onRawEvent: (raw) => {
         setSseEvents((prev) => [...prev, { time: Date.now(), data: raw }]);
       },
@@ -80,7 +82,7 @@ export function useChat() {
         setIsStreaming(false);
       },
     });
-  }, []);
+  }, [modelId]);
 
   const sendMessage = useCallback((text) => {
     doSend(text, messages);
@@ -111,5 +113,5 @@ export function useChat() {
     lastFailedTextRef.current = null;
   }, []);
 
-  return { messages, isStreaming, error, ttfb, ttfc, ttfbMap, sseEvents, sendMessage, clearMessages, retry };
+  return { messages, isStreaming, error, ttfb, ttfc, ttfbMap, sseEvents, modelId, setModelId, sendMessage, clearMessages, retry };
 }
