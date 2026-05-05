@@ -2,19 +2,20 @@
  * Sends a POST request and consumes the SSE response stream.
  * @param {string} url - The API endpoint URL
  * @param {Array} messages - Conversation history
- * @param {object} callbacks
- * @param {function} callbacks.onChunk - Called with each text chunk as it arrives
- * @param {function} callbacks.onDone - Called when the [DONE] event is received
- * @param {function} callbacks.onError - Called on fetch failure or non-200 status
+ * @param {object} options
+ * @param {string} [options.modelId] - The model ID to use
+ * @param {function} options.onChunk - Called with each text chunk as it arrives
+ * @param {function} options.onDone - Called when the [DONE] event is received
+ * @param {function} options.onError - Called on fetch failure or non-200 status
  * @returns {Promise<void>}
  */
-export async function streamChat(url, messages, { onChunk, onDone, onError, onFirstChunk, onRawEvent }) {
+export async function streamChat(url, messages, { modelId, onChunk, onDone, onError, onFirstChunk, onRawEvent }) {
   let response;
   try {
     response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages, modelId }),
     });
   } catch {
     onError('Network error — please check your connection');
