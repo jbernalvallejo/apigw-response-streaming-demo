@@ -23,12 +23,14 @@ jobs:
       - name: Run Kiro code review
         env:
           KIRO_API_KEY: ${{ secrets.KIRO_API_KEY }}
+          TERM: dumb
+          KIRO_LOG_NO_COLOR: "1"
         run: |
-          kiro-cli chat \
+          kiro-cli --classic chat \
             --agent code-reviewer \
             --no-interactive \
             --trust-tools=read,grep,glob,code \
-            "Review the code in this repository." 2>&1 | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | sed 's/\x1b\[[?][0-9]*[a-zA-Z]//g' | tr -d '\r' > /tmp/review-output.txt
+            "Review the code in this repository." > /tmp/review-output.txt 2>&1
 
       - name: Post review as PR comment
         if: always()
@@ -38,12 +40,13 @@ jobs:
             const fs = require('fs');
             let output = fs.readFileSync('/tmp/review-output.txt', 'utf8');
 
-            // Remove remaining control characters and spinner artifacts
+            // Remove any residual ANSI codes and control characters
+            output = output.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
+            output = output.replace(/\x1b\[\?[0-9]*[a-zA-Z]/g, '');
             output = output.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
             output = output.replace(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏].*Loading\.\.\..*/g, '');
-            output = output.replace(/^\s*$/gm, '');
 
-            // Extract just the review content (after the agent starts responding)
+            // Extract just the review content
             const reviewStart = output.indexOf('# Code Review');
             if (reviewStart !== -1) {
               output = output.substring(reviewStart);
