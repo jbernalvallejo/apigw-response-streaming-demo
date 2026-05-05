@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -32,7 +32,7 @@ jobs:
 
       - name: Post review as PR comment
         if: always()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');
@@ -40,8 +40,6 @@ jobs:
 
             // Remove remaining control characters and spinner artifacts
             output = output.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
-            output = output.replace(/⠋ Loading\.\.\..*$/gm, '');
-            output = output.replace(/⠙ Loading\.\.\..*$/gm, '');
             output = output.replace(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏].*Loading\.\.\..*/g, '');
             output = output.replace(/^\s*$/gm, '');
 
@@ -50,6 +48,9 @@ jobs:
             if (reviewStart !== -1) {
               output = output.substring(reviewStart);
             }
+
+            // Clean up multiple consecutive blank lines
+            output = output.replace(/\n{3,}/g, '\n\n');
 
             // Trim to GitHub comment size limit
             if (output.length > 60000) {
