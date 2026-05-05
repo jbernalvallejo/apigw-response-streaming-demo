@@ -1,26 +1,27 @@
 name: Kiro Code Review
 
 on:
-    push:
-        branches: [ kiro-headless ]
+  push:
+    branches: [kiro-headless]
 
 jobs:
-    code-review:
-        runs-on: ubuntu-latest
-        steps:
-          - name: Checkout code
-            uses: actions/checkout@v5
-            with:
-                fetch-depth: 0
+  code-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-          - name: Install Kiro CLI
-            run: curl -fsSL https://cli.kiro.dev/install | bash
+      - name: Install Kiro CLI
+        run: curl -fsSL https://cli.kiro.dev/install | bash
 
-          - name: Run Kiro code reviewer agent
-            env:
-                KIRO_API_KEY: ${{ secrets.KIRO_API_KEY }}
-            run: |
-                kiro-cli chat \
-                    --agent code-reviewer \
-                    --no-interactive \
-                    "Review the files in this repository and provide a summary of findings"
+      - name: Run Kiro code reviewer agent
+        env:
+          KIRO_API_KEY: ${{ secrets.KIRO_API_KEY }}
+        run: |
+          kiro-cli chat \
+            --agent code-reviewer \
+            --no-interactive \
+            --trust-tools=read,grep,glob,code \
+            "Review the Lambda functions and Terraform configurations in this repository. Categorize findings by severity."
