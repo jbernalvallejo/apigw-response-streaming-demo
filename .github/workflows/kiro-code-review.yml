@@ -52,6 +52,43 @@ jobs:
               output = output.substring(reviewStart);
             }
 
+            // Re-wrap code blocks: CLI strips triple backticks, leaving bare language names
+            const langs = ['javascript', 'typescript', 'jsx', 'tsx', 'hcl', 'json', 'bash', 'python', 'yaml', 'shell', 'tf'];
+            const lines = output.split('\n');
+            const result = [];
+            let inCodeBlock = false;
+
+            for (let i = 0; i < lines.length; i++) {
+              const trimmed = lines[i].trim();
+
+              if (!inCodeBlock && langs.includes(trimmed)) {
+                // Check next line exists and looks like code (not a heading or empty)
+                const nextLine = (lines[i + 1] || '').trim();
+                if (nextLine && !nextLine.startsWith('#') && !nextLine.startsWith('━')) {
+                  result.push('```' + trimmed);
+                  inCodeBlock = true;
+                  continue;
+                }
+              }
+
+              if (inCodeBlock) {
+                // Close before headings, horizontal rules, "Why/Recommendation" lines, or double blank
+                if (/^(#{1,4} |━|Why this matters|Recommendation|Even for|File:)/.test(trimmed) ||
+                    (trimmed === '' && (lines[i + 1] || '').trim().startsWith('#')) ||
+                    (trimmed === '' && (lines[i + 1] || '').trim().startsWith('━')) ||
+                    (trimmed === '' && /^(Why|Recommendation|Even|File:)/.test((lines[i + 1] || '').trim()))) {
+                  result.push('```');
+                  result.push('');
+                  inCodeBlock = false;
+                }
+              }
+
+              result.push(lines[i]);
+            }
+
+            if (inCodeBlock) result.push('```');
+            output = result.join('\n');
+
             // Clean up multiple consecutive blank lines
             output = output.replace(/\n{3,}/g, '\n\n');
 
