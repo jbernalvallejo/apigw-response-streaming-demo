@@ -23,12 +23,14 @@ jobs:
       - name: Run Kiro code review
         env:
           KIRO_API_KEY: ${{ secrets.KIRO_API_KEY }}
+          TERM: dumb
+          KIRO_LOG_NO_COLOR: "1"
         run: |
-          kiro-cli chat \
+          kiro-cli --classic chat \
             --agent code-reviewer \
             --no-interactive \
             --trust-tools=read,grep,glob,code \
-            "Review the code in this repository." 2>&1 | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' | sed 's/\x1b\[[?][0-9]*[a-zA-Z]//g' | tr -d '\r' > /tmp/review-output.txt
+            "Review the code in this repository." > /tmp/review-output.txt 2>&1
 
       - name: Post review as PR comment
         if: always()
@@ -38,16 +40,54 @@ jobs:
             const fs = require('fs');
             let output = fs.readFileSync('/tmp/review-output.txt', 'utf8');
 
-            // Remove remaining control characters and spinner artifacts
+            // Remove any residual ANSI codes and control characters
+            output = output.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
+            output = output.replace(/\x1b\[\?[0-9]*[a-zA-Z]/g, '');
             output = output.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
             output = output.replace(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏].*Loading\.\.\..*/g, '');
-            output = output.replace(/^\s*$/gm, '');
 
-            // Extract just the review content (after the agent starts responding)
+            // Extract just the review content
             const reviewStart = output.indexOf('# Code Review');
             if (reviewStart !== -1) {
               output = output.substring(reviewStart);
             }
+
+            // Re-wrap code blocks: CLI strips triple backticks, leaving bare language names
+            const langs = ['javascript', 'typescript', 'jsx', 'tsx', 'hcl', 'json', 'bash', 'python', 'yaml', 'shell', 'tf'];
+            const lines = output.split('\n');
+            const result = [];
+            let inCodeBlock = false;
+
+            for (let i = 0; i < lines.length; i++) {
+              const trimmed = lines[i].trim();
+
+              if (!inCodeBlock && langs.includes(trimmed)) {
+                // Check next line exists and looks like code (not a heading or empty)
+                const nextLine = (lines[i + 1] || '').trim();
+                if (nextLine && !nextLine.startsWith('#') && !nextLine.startsWith('━')) {
+                  result.push('```' + trimmed);
+                  inCodeBlock = true;
+                  continue;
+                }
+              }
+
+              if (inCodeBlock) {
+                // Close before headings, horizontal rules, "Why/Recommendation" lines, or double blank
+                if (/^(#{1,4} |━|Why this matters|Recommendation|Even for|File:)/.test(trimmed) ||
+                    (trimmed === '' && (lines[i + 1] || '').trim().startsWith('#')) ||
+                    (trimmed === '' && (lines[i + 1] || '').trim().startsWith('━')) ||
+                    (trimmed === '' && /^(Why|Recommendation|Even|File:)/.test((lines[i + 1] || '').trim()))) {
+                  result.push('```');
+                  result.push('');
+                  inCodeBlock = false;
+                }
+              }
+
+              result.push(lines[i]);
+            }
+
+            if (inCodeBlock) result.push('```');
+            output = result.join('\n');
 
             // Clean up multiple consecutive blank lines
             output = output.replace(/\n{3,}/g, '\n\n');
@@ -57,11 +97,9 @@ jobs:
               output = output.substring(0, 60000) + '\n\n... (truncated)';
             }
 
-            const body = `## 🔍 Kiro Code Review\n\n${output}`;
-
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: body
+              body: output
             });

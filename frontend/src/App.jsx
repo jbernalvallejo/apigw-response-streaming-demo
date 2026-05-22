@@ -84,7 +84,7 @@ function SseLogPanel({ events, isOpen, ttfb, ttfc }) {
 }
 
 export default function App() {
-  const { messages, isStreaming, error, ttfb, ttfc, ttfbMap, sseEvents, sendMessage, clearMessages, retry } = useChat();
+  const { messages, isStreaming, error, ttfb, ttfc, ttfbMap, sseEvents, modelId, setModelId, sendMessage, clearMessages, retry } = useChat();
   const [input, setInput] = useState('');
   const [showSseLog, setShowSseLog] = useState(false);
   const messagesEndRef = useRef(null);
@@ -134,6 +134,18 @@ export default function App() {
           <h1 className="title">Lambda SSE</h1>
         </div>
         <div className="header-actions">
+          <select
+            className="model-selector"
+            value={modelId}
+            onChange={(e) => setModelId(e.target.value)}
+            disabled={isStreaming}
+            aria-label="Select AI model"
+          >
+            <option value="amazon.nova-lite-v1:0">Nova Lite</option>
+            <option value="anthropic.claude-haiku-4-5-20251001-v1:0">Claude Haiku 4.5</option>
+            <option value="anthropic.claude-sonnet-4-6">Claude Sonnet 4.6</option>
+            <option value="anthropic.claude-opus-4-7">Claude Opus 4.7</option>
+          </select>
           {messages.length > 0 && (
             <motion.button
               initial={{ opacity: 0, scale: 0.9 }}
